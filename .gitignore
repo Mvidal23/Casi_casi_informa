@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.env
+*.json
+
+env.sh
+
+# Logs y datos
+alertas_casi_casi.log
+health_metrics.csv
+precio_prev.txt
+token_calendar.json
+
+# Entornos virtuales
+venv/
+
+# IDEs
+.vscode/
+.idea/
