@@ -36,7 +36,9 @@ PRICE_FILE = os.getenv('PRICE_FILE', 'precio_prev.txt')
 LOG_FILE = os.getenv('LOG_FILE', 'alertas_casi_casi.log')
 LAST_SUMMARY_FILE = os.getenv('LAST_SUMMARY_FILE', 'last_summary.txt')
 HEALTH_CSV = os.getenv('HEALTH_CSV', 'health_metrics.csv')
-GOOGLE_CREDENTIALS_FILE = os.getenv('GOOGLE_CREDENTIALS_FILE', 'client_secret.json')
+GOOGLE_CREDENTIALS_FILE = os.getenv(
+    'GOOGLE_CREDENTIALS_FILE',
+     'client_secret.json')
 GOOGLE_TOKEN_FILE = os.getenv('GOOGLE_TOKEN_FILE', 'token_calendar.json')
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
@@ -76,6 +78,8 @@ PHRASES = {
 }
 
 # ========== UTILIDADES ==========
+
+
 def read_file(path):
     if os.path.exists(path):
         with open(path, 'r') as f:
@@ -110,12 +114,18 @@ def retry(func, stage, retries=3, delay=5, **kwargs):
     return None
 
 # ========== FUNCIONES BINANCE ==========
+
+
 def get_current_price(sym=SYMBOL):
     url = f"https://api.binance.com/api/v3/ticker/price?symbol={sym}"
     return float(requests.get(url, timeout=5).json()['price'])
 
 
-def get_historical_prices(sym=SYMBOL, interval='5m', limit=CONSOLIDATION_WINDOW + RSI_PERIOD):
+def get_historical_prices(
+    sym=SYMBOL,
+    interval='5m',
+    limit=CONSOLIDATION_WINDOW +
+     RSI_PERIOD):
     url = "https://api.binance.com/api/v3/klines"
     params = {'symbol': sym, 'interval': interval, 'limit': limit}
     data = requests.get(url, params=params, timeout=5).json()
@@ -125,8 +135,8 @@ def get_historical_prices(sym=SYMBOL, interval='5m', limit=CONSOLIDATION_WINDOW 
 def calculate_rsi(prices, period=RSI_PERIOD):
     if len(prices) < period + 1:
         return None
-    gains = [max(prices[i+1] - prices[i], 0) for i in range(period)]
-    losses = [max(prices[i] - prices[i+1], 0) for i in range(period)]
+    gains = [max(prices[i + 1] - prices[i], 0) for i in range(period)]
+    losses = [max(prices[i] - prices[i + 1], 0) for i in range(period)]
     avg_gain = sum(gains) / period
     avg_loss = sum(losses) / period or 1e-6
     rs = avg_gain / avg_loss
@@ -147,15 +157,19 @@ def in_active_hours():
     return ACTIVE_HOUR_START <= datetime.now(tz).hour < ACTIVE_HOUR_END
 
 # ========== GOOGLE CALENDAR ==========
+
+
 def autenticar_google():
     creds = None
     if os.path.exists(GOOGLE_TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, SCOPES)
+        creds = Credentials.from_authorized_user_file(
+            GOOGLE_TOKEN_FILE, SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(GOOGLE_CREDENTIALS_FILE, SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                GOOGLE_CREDENTIALS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
         with open(GOOGLE_TOKEN_FILE, 'w') as token:
             token.write(creds.to_json())
@@ -164,8 +178,10 @@ def autenticar_google():
 
 def obtener_eventos_hoy(service):
     tz = pytz.timezone(TIMEZONE)
-    start = datetime.now(tz).replace(hour=0, minute=0, second=0).isoformat() + 'Z'
-    end = datetime.now(tz).replace(hour=23, minute=59, second=59).isoformat() + 'Z'
+    start = datetime.now(tz).replace(
+    hour=0, minute=0, second=0).isoformat() + 'Z'
+    end = datetime.now(tz).replace(
+    hour=23, minute=59, second=59).isoformat() + 'Z'
     ev = service.events().list(calendarId='primary', timeMin=start, timeMax=end,
                                 singleEvents=True, orderBy='startTime').execute()
     return ev.get('items', [])
@@ -174,7 +190,9 @@ def obtener_eventos_hoy(service):
 def formatear_eventos(eventos):
     if not eventos:
         return 'No tienes reuniones hoy.'
-    txt = f"Hoy tienes {len(eventos)} reunión{'es' if len(eventos)>1 else ''}. "
+    txt = f"Hoy tienes {
+    len(eventos)} reunión{
+        'es' if len(eventos) > 1 else ''}. "
     for e in eventos:
         s = e['start'].get('dateTime', e['start'].get('date'))
         h = s[11:16]
@@ -183,6 +201,8 @@ def formatear_eventos(eventos):
     return txt
 
 # ========== SENSOR PLACEHOLDER ==========
+
+
 def check_presence():
     return True
 
@@ -197,12 +217,22 @@ def is_inactive():
     return (time.time() - last_activity) > INACTIVITY_TIMEOUT
 
 # ========== VOICE MONKEY ==========
+
+
 def send_voice(msg, urgent=False):
     device = VM_DEVICE_URGENT if urgent else VM_DEVICE_NORMAL
     voice = VOICE_URGENT if urgent else VOICE_NORMAL
-    params = {'token': VM_TOKEN, 'device': device, 'voice': voice, 'text': msg, 'lang': LANGUAGE}
+    params = {
+    'token': VM_TOKEN,
+    'device': device,
+    'voice': voice,
+    'text': msg,
+     'lang': LANGUAGE}
     try:
-         requests.get('https://api-v2.voicemonkey.io/trigger', params=params, timeout=5)
+         requests.get(
+    'https://api-v2.voicemonkey.io/trigger',
+    params=params,
+     timeout=5)
         log(msg, 'URGENT' if urgent else 'VOICE')
     except Exception as e:
         log(f"Fallo al enviar voz: {e}", 'ERROR')
